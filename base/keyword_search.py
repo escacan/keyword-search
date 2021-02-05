@@ -2,7 +2,7 @@ import requests
 import sys
 import csv
 import urllib
-from urllib import parse
+import urllib.parse 
 
 def getBearerToken():
     token = input("베어러 토큰 입력 : ")
@@ -27,20 +27,20 @@ def readCsv():
     f.close()
 
 def sendRequests(token, keywords=''):
-    print(keywords)
     bearerToken = 'Bearer ' + token
     url = 'https://manage.searchad.naver.com/keywordstool'
-    values = {'format': 'json',
-            'hintKeywords': '탁자,1인용탁자,2인용탁자,3인용탁자,4인용탁자'}
+    print(url)
     headers = {'Authorization': bearerToken}
-    data = urllib.parse.urlencode(values).encode('utf-8')
-    # print(data)
-    req = urllib.request.Request(url, data, headers, method='GET')
+    params = {
+        'format': 'json',
+        'hintKeywords': keywords
+    }
 
     try:
-        f = urllib.request.urlopen(req)
-        print(f.read())
-        print(f.read().decode('utf-8'))
+        resp = requests.get(url= url, headers= headers, params= params)
+        print(resp.json())
+
+        # print(len(keywords))
     except urllib.error.HTTPError as e:
         if e.getcode() == 401:
             print('Bearer토큰 유효시간 민료')
@@ -49,16 +49,6 @@ def sendRequests(token, keywords=''):
         else:
             return
 
-def encodeKeyword(keywords):
-    url = parse.urlparse('https://manage.searchad.naver.com/keywordstool?format=json&hintKeywords=' + keywords)
-
-    print(url.geturl())
-
-    # query = parse.parse_qs(url.query)
-    # result = parse.urlencode(query, doseq=True)
-
-    # print(query)
-    # print(result)
 
 token = getBearerToken()
-sendRequests(token, "1,2,3")
+sendRequests(token, "탁자,1인용탁자")
