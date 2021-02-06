@@ -22,7 +22,7 @@ def writeCsv():
 
     f.close()
 
-def readCsv():0
+def readCsv():
     f = open('example.csv', 'r')
     rdr = csv.reader(f)
     for line in rdr:
