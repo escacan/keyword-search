@@ -3,7 +3,7 @@ import sys
 import csv
 import time
 
-_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiI3YzEyYmFjOC0xZjg5LTRkODQtODZiOC0zNGMwMGY5ZjljNmQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEyNjM3NjI1LCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEyNjM4Mjg1LCJpYXQiOjE2MTI2Mzc2ODUsImp0aSI6IjBiYzZkMDFmLWM1NDgtNGIxNy04ODEzLTU3MzRmYmRhZTU4YSJ9.tfRpZL8Cjvm6mucC-hiGMn8THfAAvavfcEG40kHCR7M'
+_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiI3YzEyYmFjOC0xZjg5LTRkODQtODZiOC0zNGMwMGY5ZjljNmQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEyNjM5NTkzLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEyNjQwMjUzLCJpYXQiOjE2MTI2Mzk2NTMsImp0aSI6ImU0OWE0Njg3LTA4MmEtNDdmMS05NTI4LTY1ZjA2NTU3ZjMyZCJ9.GO0JjJ6VlYAv7AmHycwDYFwU6Y7PVAX80jsOjEsr4Kk'
 _clientId = '-XfwsIC9THj27j7OVClGw'
 
 def getClientId():
@@ -11,6 +11,7 @@ def getClientId():
     return clientId
 
 def getBearerToken():
+    global _token
     _token = input("베어러 토큰 입력 : ")
 
 def writeCsv():
@@ -51,6 +52,8 @@ def filterKeywords(productName, keywordList):
     f.close()
 
 def sendRequestToNaverKeywordTool(productName= '', keywords=''):
+    keywordSet = set()
+
     bearerToken = 'Bearer ' + _token
     url = 'https://manage.searchad.naver.com/keywordstool'
 
@@ -78,6 +81,10 @@ def sendRequestToNaverKeywordTool(productName= '', keywords=''):
 
             parsedKeywordList = []
             for keyword in keywordList:
+                if keyword['relKeyword'] in keywordSet:
+                    continue
+                keywordSet.add(keyword['relKeyword'])
+
                 if keyword['monthlyPcQcCnt'] == '< 10' :
                     keyword['monthlyPcQcCnt'] = 0
                 if keyword['monthlyMobileQcCnt'] == '< 10':
