@@ -1,17 +1,17 @@
-import threading
 import requests
 import sys
 import csv
+import time
 
-clientId = ''
+_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiI3YzEyYmFjOC0xZjg5LTRkODQtODZiOC0zNGMwMGY5ZjljNmQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEyNjM3NjI1LCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEyNjM4Mjg1LCJpYXQiOjE2MTI2Mzc2ODUsImp0aSI6IjBiYzZkMDFmLWM1NDgtNGIxNy04ODEzLTU3MzRmYmRhZTU4YSJ9.tfRpZL8Cjvm6mucC-hiGMn8THfAAvavfcEG40kHCR7M'
+_clientId = '-XfwsIC9THj27j7OVClGw'
 
 def getClientId():
     clientId = input("ClientId 입력 : ")
     return clientId
 
 def getBearerToken():
-    token = input("베어러 토큰 입력 : ")
-    return token
+    _token = input("베어러 토큰 입력 : ")
 
 def writeCsv():
     f = open('example.csv','w', newline='')
@@ -22,7 +22,7 @@ def writeCsv():
 
     f.close()
 
-def readCsv():
+def readCsv():0
     f = open('example.csv', 'r')
     rdr = csv.reader(f)
     for line in rdr:
@@ -31,37 +31,27 @@ def readCsv():
     
     f.close()
 
-def filterKeywords(keywordList):
-    print("필터링 시작")
-    # 총 검색횟수 1000회 이상인 키워드 필터링
-    filterKeywordsDict = {}
-    print("입력된 키워드 개수 : {}".format(len(keywordList)))
-
-    ii = 1
+def filterKeywords(productName, keywordList):
+    f = open('{}.csv'.format(productName),'a', newline='')
+    wr = csv.writer(f)
 
     for keywordObj in keywordList:
-        ii = ii + 1
-        if ii == 10:
-            break
-            # print("Cur II : {}".format(ii))
         keyword, searchCount = keywordObj['keyword'], keywordObj['searchCount']
-        print("Keyword : {},  cnt : {}".format(keyword, searchCount))
+        
         if searchCount >= 1000:
             shoppingData = sendRequestToNaverShopping(keyword)
-            filterKeywordsDict[keyword] = {
+            finalKeywordObj = {
                 'searchCount': searchCount,
                 'itemCategory': shoppingData['itemCategory'],
                 'totalItemCount': shoppingData['totalItemCount'],
                 'ratio': float(shoppingData['totalItemCount']) / searchCount
             }
-            print(filterKeywordsDict[keyword])
+            wr.writerow([keyword,finalKeywordObj['itemCategory'],finalKeywordObj['searchCount'],finalKeywordObj['totalItemCount'],finalKeywordObj['ratio']])
 
-    print("검색수 1000이상인 키워드 개수 : ", len(filterKeywordsDict))
-    print(filterKeywordsDict)
+    f.close()
 
-
-def sendRequestToNaverKeywordTool(token, keywords=''):
-    bearerToken = 'Bearer ' + token
+def sendRequestToNaverKeywordTool(productName= '', keywords=''):
+    bearerToken = 'Bearer ' + _token
     url = 'https://manage.searchad.naver.com/keywordstool'
 
     headers = {'Authorization': bearerToken}
@@ -75,8 +65,8 @@ def sendRequestToNaverKeywordTool(token, keywords=''):
 
         if resp.status_code == 401:
             print('Bearer토큰 유효시간 민료')
-            newToken = getBearerToken()
-            sendRequestToNaverKeywordTool(newToken, keywords)        
+            getBearerToken()
+            sendRequestToNaverKeywordTool(productName, keywords)
         else:
             if resp.status_code != 200:
                 print("StatusCode가 이상하다. 확인필요")
@@ -94,13 +84,13 @@ def sendRequestToNaverKeywordTool(token, keywords=''):
                     keyword['monthlyMobileQcCnt'] = 0
                 parsedKeywordList.append({'keyword': keyword['relKeyword'], 'searchCount': keyword['monthlyPcQcCnt'] + keyword['monthlyMobileQcCnt']})
 
-            filterKeywords(parsedKeywordList)
+            filterKeywords(productName, parsedKeywordList)
 
     except Exception as e:
         print("Exception On sendRequestToNaverKeywordTool:: ", str(e))
 
 def sendRequestToNaverShopping(keyword):
-    url = 'https://search.shopping.naver.com/_next/data/{}/search/all.json'.format(clientId)
+    url = 'https://search.shopping.naver.com/_next/data/{}/search/all.json'.format(_clientId)
     params = {
         'query': keyword
     }
@@ -133,10 +123,12 @@ def sendRequestToNaverShopping(keyword):
     except Exception as e:
         print("sendRequestToNaverShopping:: ", str(e))
 
-# token = getBearerToken()
-# clientId = getClientId()
 
-token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiI3YzEyYmFjOC0xZjg5LTRkODQtODZiOC0zNGMwMGY5ZjljNmQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEyNjI5MTgzLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEyNjI5ODQzLCJpYXQiOjE2MTI2MjkyNDMsImp0aSI6ImRlZjliOTU4LTRiODUtNDZjZC1iNGJjLTBiY2VkMDAyZTE1NSJ9.Dm1md_2aUe1UvdXFbQdo8TYrzoCzb4qb0W-6cWWZ6tY'
-clientId = '-XfwsIC9THj27j7OVClGw'
+start_time = time.time()
 
-sendRequestToNaverKeywordTool(token, "탁자,1인용탁자")
+sendRequestToNaverKeywordTool("예쁜탁자", "탁자,1인용탁자")
+sendRequestToNaverKeywordTool("예쁜탁자2", "탁자,1인용탁자")
+sendRequestToNaverKeywordTool("예쁜탁자3", "탁자,1인용탁자")
+sendRequestToNaverKeywordTool("예쁜탁자4", "탁자,1인용탁자")
+
+print("---Total time : {}---".format(time.time() - start_time))
