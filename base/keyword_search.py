@@ -2,6 +2,12 @@ import requests
 import sys
 import csv
 
+clientId = ''
+
+def getClientId():
+    clientId = input("ClientId 입력 : ")
+    return clientId
+
 def getBearerToken():
     token = input("베어러 토큰 입력 : ")
     return token
@@ -25,15 +31,33 @@ def readCsv():
     f.close()
 
 def filterKeywords(keywordDict):
+    print("필터링 시작")
     # 총 검색횟수 1000회 이상인 키워드 필터링
     filterKeywordsDict = {}
+    totalCnt = len(keywordDict.keys())
+    print("입력된 키워드 개수 : {}".format(totalCnt))
+
+    ii = 1
+
     for keyword, cnt in keywordDict.items():
+        if ii % 10 == 0:
+            print("Cur II : {}".format(ii))
+
         if cnt >= 1000:
-            filterKeywordsDict[keyword] = cnt
+            shoppingData = sendRequestToNaverShopping(keyword)
+            filterKeywordsDict[keyword] = {
+                'searchCount': cnt,
+                'itemCategory': shoppingData['itemCategory'],
+                'totalItemCount': shoppingData['totalItemCount'],
+                'ratio': float(shoppingData['totalItemCount']) / cnt
+            }
+
+    print("현재 진행률 : {}%".format(prevCC))
 
     print("검색수 1000이상인 키워드 개수 : ", len(filterKeywordsDict))
+    print(filterKeywordsDict)
 
-def sendRequests(token, keywords=''):
+def sendRequestToNaverKeywordTool(token, keywords=''):
     bearerToken = 'Bearer ' + token
     url = 'https://manage.searchad.naver.com/keywordstool'
 
@@ -49,7 +73,7 @@ def sendRequests(token, keywords=''):
         if resp.status_code == 401:
             print('Bearer토큰 유효시간 민료')
             newToken = getBearerToken()
-            sendRequests(newToken, keywords)        
+            sendRequestToNaverKeywordTool(newToken, keywords)        
         else:
             if resp.status_code != 200:
                 print("StatusCode가 이상하다. 확인필요")
@@ -59,35 +83,57 @@ def sendRequests(token, keywords=''):
 
             print("검색된 단어 개수 : {}".format(len(keywordList)))
 
-            tempKeyword = keywordList[0]
-
-            print(tempKeyword)
-
-            print(type(tempKeyword['monthlyPcQcCnt']))
-
-            print(type(tempKeyword['monthlyMobileQcCnt']))
-
-            print(tempKeyword['monthlyPcQcCnt'] + tempKeyword['monthlyMobileQcCnt'])
-
             parsedKeywordDict = {}
-            i = 0
-            try:
-                for keyword in keywordList:
-                    if keyword['monthlyPcQcCnt'] == '< 10' or keyword['monthlyMobileQcCnt'] == '< 10':
-                        i = i+1
-                        continue;
-
-                    parsedKeywordDict[keyword['relKeyword']] = keyword['monthlyPcQcCnt'] + keyword['monthlyMobileQcCnt']                
-                    i = i + 1
-            except Exception as e:
-                print(str(e))
-                print("Error on {}".format(i))
-                print(keywordList[i])
+            for keyword in keywordList:
+                if keyword['monthlyPcQcCnt'] == '< 10' :
+                    keyword['monthlyPcQcCnt'] = 0
+                if keyword['monthlyMobileQcCnt'] == '< 10':
+                    keyword['monthlyMobileQcCnt'] = 0
+                parsedKeywordDict[keyword['relKeyword']] = keyword['monthlyPcQcCnt'] + keyword['monthlyMobileQcCnt']                
 
             filterKeywords(parsedKeywordDict)
 
     except Exception as e:
-        print(str(e))
+        print("Exception On sendRequestToNaverKeywordTool:: ", str(e))
 
-token = getBearerToken()
-sendRequests(token, "탁자,1인용탁자")
+def sendRequestToNaverShopping(keyword):
+    url = 'https://search.shopping.naver.com/_next/data/{}/search/all.json'.format(clientId)
+    params = {
+        'query': keyword
+    }
+
+    try:
+        resp = requests.get(url= url, params= params)
+
+        products = resp.json().get('pageProps').get('initialState').get('products')
+        # pageProps -> initialState -> products -> total
+        totalItemCount = products.get('total')
+
+        # pageProps -> initialState -> products -> list -> 0 -> item -> [category1Name, category1Name, category1Name, category1Name]
+        itemCategory = ''
+
+        productList = products.get('list')
+
+        categoryBase = productList[0].get('item')
+        if 'category1Name' in categoryBase:
+            itemCategory = itemCategory + categoryBase['category1Name'] 
+            if 'category2Name' in categoryBase:
+                itemCategory = itemCategory + categoryBase['category2Name']
+                if 'category3Name' in categoryBase:
+                    itemCategory = itemCategory + categoryBase['category3Name']
+                    if 'category4Name' in categoryBase:
+                        itemCategory = itemCategory + categoryBase['category4Name']
+                        if 'category5Name' in categoryBase:
+                            itemCategory = itemCategory + categoryBase['category5Name']
+        return {'itemCategory': itemCategory, 'totalItemCount': totalItemCount}
+
+    except Exception as e:
+        print("sendRequestToNaverShopping:: ", str(e))
+
+# token = getBearerToken()
+# clientId = getClientId()
+
+token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiI3YzEyYmFjOC0xZjg5LTRkODQtODZiOC0zNGMwMGY5ZjljNmQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEyNjI3MjMzLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEyNjI3ODkzLCJpYXQiOjE2MTI2MjcyOTMsImp0aSI6IjBlYTY2ZWJjLTAxNjEtNGNmNC1iODEyLWM4NGM2Zjc5ZGQ0MiJ9.ERg_EarMHB5ko3Yi8ZnHLtZe2ExAzo6pt1fYILD5HBs'
+clientId = '-XfwsIC9THj27j7OVClGw'
+
+sendRequestToNaverKeywordTool(token, "탁자,1인용탁자")
