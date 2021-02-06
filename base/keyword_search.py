@@ -1,3 +1,4 @@
+import threading
 import requests
 import sys
 import csv
@@ -30,32 +31,34 @@ def readCsv():
     
     f.close()
 
-def filterKeywords(keywordDict):
+def filterKeywords(keywordList):
     print("필터링 시작")
     # 총 검색횟수 1000회 이상인 키워드 필터링
     filterKeywordsDict = {}
-    totalCnt = len(keywordDict.keys())
-    print("입력된 키워드 개수 : {}".format(totalCnt))
+    print("입력된 키워드 개수 : {}".format(len(keywordList)))
 
     ii = 1
 
-    for keyword, cnt in keywordDict.items():
-        if ii % 10 == 0:
-            print("Cur II : {}".format(ii))
-
-        if cnt >= 1000:
+    for keywordObj in keywordList:
+        ii = ii + 1
+        if ii == 10:
+            break
+            # print("Cur II : {}".format(ii))
+        keyword, searchCount = keywordObj['keyword'], keywordObj['searchCount']
+        print("Keyword : {},  cnt : {}".format(keyword, searchCount))
+        if searchCount >= 1000:
             shoppingData = sendRequestToNaverShopping(keyword)
             filterKeywordsDict[keyword] = {
-                'searchCount': cnt,
+                'searchCount': searchCount,
                 'itemCategory': shoppingData['itemCategory'],
                 'totalItemCount': shoppingData['totalItemCount'],
-                'ratio': float(shoppingData['totalItemCount']) / cnt
+                'ratio': float(shoppingData['totalItemCount']) / searchCount
             }
-
-    print("현재 진행률 : {}%".format(prevCC))
+            print(filterKeywordsDict[keyword])
 
     print("검색수 1000이상인 키워드 개수 : ", len(filterKeywordsDict))
     print(filterKeywordsDict)
+
 
 def sendRequestToNaverKeywordTool(token, keywords=''):
     bearerToken = 'Bearer ' + token
@@ -83,15 +86,15 @@ def sendRequestToNaverKeywordTool(token, keywords=''):
 
             print("검색된 단어 개수 : {}".format(len(keywordList)))
 
-            parsedKeywordDict = {}
+            parsedKeywordList = []
             for keyword in keywordList:
                 if keyword['monthlyPcQcCnt'] == '< 10' :
                     keyword['monthlyPcQcCnt'] = 0
                 if keyword['monthlyMobileQcCnt'] == '< 10':
                     keyword['monthlyMobileQcCnt'] = 0
-                parsedKeywordDict[keyword['relKeyword']] = keyword['monthlyPcQcCnt'] + keyword['monthlyMobileQcCnt']                
+                parsedKeywordList.append({'keyword': keyword['relKeyword'], 'searchCount': keyword['monthlyPcQcCnt'] + keyword['monthlyMobileQcCnt']})
 
-            filterKeywords(parsedKeywordDict)
+            filterKeywords(parsedKeywordList)
 
     except Exception as e:
         print("Exception On sendRequestToNaverKeywordTool:: ", str(e))
@@ -133,7 +136,7 @@ def sendRequestToNaverShopping(keyword):
 # token = getBearerToken()
 # clientId = getClientId()
 
-token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiI3YzEyYmFjOC0xZjg5LTRkODQtODZiOC0zNGMwMGY5ZjljNmQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEyNjI3MjMzLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEyNjI3ODkzLCJpYXQiOjE2MTI2MjcyOTMsImp0aSI6IjBlYTY2ZWJjLTAxNjEtNGNmNC1iODEyLWM4NGM2Zjc5ZGQ0MiJ9.ERg_EarMHB5ko3Yi8ZnHLtZe2ExAzo6pt1fYILD5HBs'
+token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiI3YzEyYmFjOC0xZjg5LTRkODQtODZiOC0zNGMwMGY5ZjljNmQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEyNjI5MTgzLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEyNjI5ODQzLCJpYXQiOjE2MTI2MjkyNDMsImp0aSI6ImRlZjliOTU4LTRiODUtNDZjZC1iNGJjLTBiY2VkMDAyZTE1NSJ9.Dm1md_2aUe1UvdXFbQdo8TYrzoCzb4qb0W-6cWWZ6tY'
 clientId = '-XfwsIC9THj27j7OVClGw'
 
 sendRequestToNaverKeywordTool(token, "탁자,1인용탁자")
