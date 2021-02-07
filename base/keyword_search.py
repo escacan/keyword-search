@@ -15,13 +15,15 @@ def getBearerToken():
     global _token
     _token = input("베어러 토큰 입력 : ")
 
-def readCsv():
-    f = open('상품조사.csv', 'r')
+def readCsv(filename):
+    f = open(filename, 'r')
     rdr = csv.reader(f)
     for line in rdr:
         product_name = line[0]
         rel_keywords = line[1]
         rel_keyword_list = rel_keywords.split(',')
+
+        print('Product : ', product_name)
 
         keywords_cnt = len(rel_keyword_list)
         keyword_grp = keywords_cnt // 5 + 1
@@ -32,7 +34,10 @@ def readCsv():
         ff.close()
 
         for group_num in range(keyword_grp):
-            keyword_list_part = rel_keyword_list[group_num*5:group_num*5+5]
+            if group_num*5 + 5 < keywords_cnt:
+                keyword_list_part = rel_keyword_list[group_num*5:group_num*5+5]
+            else:
+                keyword_list_part = rel_keyword_list[group_num*5:keywords_cnt]
             keyword_str = ','.join(keyword_list_part)
             sendRequestToNaverKeywordTool(product_name, keyword_str)
             print("---{}% done---".format((group_num + 1) * 100 // keyword_grp ))
@@ -115,19 +120,20 @@ def sendRequestToNaverShopping(keyword):
         # pageProps -> initialState -> products -> list -> 0 -> item -> [category1Name, category1Name, category1Name, category1Name]
         itemCategory = ''
 
-        productList = products.get('list')
+        if totalItemCount > 0:
+            productList = products.get('list')
 
-        categoryBase = productList[0].get('item')
-        if 'category1Name' in categoryBase:
-            itemCategory = itemCategory + categoryBase['category1Name'] 
-            if 'category2Name' in categoryBase:
-                itemCategory = itemCategory + categoryBase['category2Name']
-                if 'category3Name' in categoryBase:
-                    itemCategory = itemCategory + categoryBase['category3Name']
-                    if 'category4Name' in categoryBase:
-                        itemCategory = itemCategory + categoryBase['category4Name']
-                        if 'category5Name' in categoryBase:
-                            itemCategory = itemCategory + categoryBase['category5Name']
+            categoryBase = productList[0].get('item')
+            if 'category1Name' in categoryBase:
+                itemCategory = itemCategory + categoryBase['category1Name'] 
+                if 'category2Name' in categoryBase:
+                    itemCategory = itemCategory + categoryBase['category2Name']
+                    if 'category3Name' in categoryBase:
+                        itemCategory = itemCategory + categoryBase['category3Name']
+                        if 'category4Name' in categoryBase:
+                            itemCategory = itemCategory + categoryBase['category4Name']
+                            if 'category5Name' in categoryBase:
+                                itemCategory = itemCategory + categoryBase['category5Name']
         return {'itemCategory': itemCategory, 'totalItemCount': totalItemCount}
 
     except Exception as e:
@@ -136,6 +142,7 @@ def sendRequestToNaverShopping(keyword):
 
 start_time = time.time()
 
-readCsv()
+readCsv('상품조사.csv')
+readCsv('상품조사2.csv')
 
 print("---Total time : {}---".format(time.time() - start_time))
