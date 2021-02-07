@@ -109,17 +109,19 @@ def sendRequestToNaverShopping(keyword):
     params = {
         'query': keyword
     }
+    
+    itemCategory = ''
+    totalItemCount = 0
 
     try:
         resp = requests.get(url= url, params= params)
 
         products = resp.json().get('pageProps').get('initialState').get('products')
         # pageProps -> initialState -> products -> total
-        totalItemCount = products.get('total')
 
+        totalItemCount = products.get('total', 0)
+    
         # pageProps -> initialState -> products -> list -> 0 -> item -> [category1Name, category1Name, category1Name, category1Name]
-        itemCategory = ''
-
         if totalItemCount > 0:
             productList = products.get('list')
 
@@ -134,15 +136,14 @@ def sendRequestToNaverShopping(keyword):
                             itemCategory = itemCategory + categoryBase['category4Name']
                             if 'category5Name' in categoryBase:
                                 itemCategory = itemCategory + categoryBase['category5Name']
-        return {'itemCategory': itemCategory, 'totalItemCount': totalItemCount}
 
     except Exception as e:
         print("sendRequestToNaverShopping:: ", str(e))
-
+    finally:
+        return {'itemCategory': itemCategory, 'totalItemCount': totalItemCount}
 
 start_time = time.time()
 
 readCsv('상품조사.csv')
-readCsv('상품조사2.csv')
 
 print("---Total time : {}---".format(time.time() - start_time))
