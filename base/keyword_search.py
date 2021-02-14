@@ -3,7 +3,7 @@ import sys
 import csv
 import time
 
-_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiJkZTVlODdjMi1mMzEzLTQ2YWQtYTdlZC03ZTE1Zjk3ZmRkM2YiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEzMjkzNjk1LCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEzMjk0MzU1LCJpYXQiOjE2MTMyOTM3NTUsImp0aSI6IjlmOGIyMDExLTQ2ZGYtNGVjMy05NzVmLTVkYTk3MGE2ZDZkYSJ9.b5xDr1xQBE9o1gtfwkGXh4ZnvF3hXtYq0JyTWbqtD90'
+_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiJkZTVlODdjMi1mMzEzLTQ2YWQtYTdlZC03ZTE1Zjk3ZmRkM2YiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEzMzA4MTgyLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEzMzA4ODQyLCJpYXQiOjE2MTMzMDgyNDIsImp0aSI6IjRhMDE4OGQ3LWRjOWEtNGVmMC05ODkzLWMyNzUwYzE0OTJlMyJ9.0Z_Vg0S86UfxR-bM5JDfJLWGvLOAGhlDSJQMG9N90n0'
 _clientId = 'k5ZoItU4ij5tAH1wX-seU'
 _keywordSet = set()
 
@@ -49,15 +49,29 @@ def readCsv(filename):
 
             if keywordList:
                 for item in keywordList:
-                    totalProductKeywordListDict[product_name].append(item)
+                    if item['keyword'] in keywordSet:
+                        continue
+                    else:
+                        keywordSet.add(item['keyword'])
+                        totalProductKeywordListDict[product_name].append(item)
             
             print("---{}% done---".format((group_num + 1) * 100 // keyword_grp ))
-            
-    # dict을 순회하면서 filter 작업 수행하기!
-    print('### Filter Keyword ###')
-    for productName, parsedKeywordList in totalProductKeywordListDict.items():
-        filterKeywords(productName, parsedKeywordList)
+    f.close()
 
+    for productName, parsedKeywordList in totalProductKeywordListDict.items():
+        ff = open('keywordCash.csv','w',encoding= 'utf-8-sig', newline='')
+        wr = csv.writer(ff)
+        wr.writerow([productName, parsedKeywordList])
+        ff.close()    
+
+    # keywordCash를 순회하면서 filter 작업 수행하기!
+    print('### Filter Keyword ###')
+    f = open(filename, 'r')
+    rdr = csv.reader(f)
+    for line in rdr:
+        productName = line[0]
+        keywordList = line[1]
+        filterKeywords(productName, parsedKeywordList)
     f.close()
 
 def filterKeywords(productName, keywordList):
@@ -70,6 +84,7 @@ def filterKeywords(productName, keywordList):
     prevC = 10
 
     for keywordObj in keywordList:
+        time.sleep(0.5)
         curIndex = curIndex + 1
         keyword, searchCount = keywordObj['keyword'], keywordObj['searchCount']
         
@@ -128,7 +143,10 @@ def sendRequestToNaverKeywordTool(productName= '', keywords=''):
                     keyword['monthlyPcQcCnt'] = 0
                 if keyword['monthlyMobileQcCnt'] == '< 10':
                     keyword['monthlyMobileQcCnt'] = 0
-                parsedKeywordList.append({'keyword': keyword['relKeyword'], 'searchCount': keyword['monthlyPcQcCnt'] + keyword['monthlyMobileQcCnt']})
+                totalSearchCount = keyword['monthlyPcQcCnt'] + keyword['monthlyMobileQcCnt']
+
+                if totalSearchCount > 1000:
+                    parsedKeywordList.append({'keyword': keyword['relKeyword'], 'searchCount': totalSearchCount})
             return parsedKeywordList
     except Exception as e:
         print("Exception On sendRequestToNaverKeywordTool:: ", str(e))
