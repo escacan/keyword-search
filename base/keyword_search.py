@@ -15,54 +15,55 @@ def getBearerToken():
     global _token
     _token = input("베어러 토큰 입력 : ")
 
-def readCsv(filename):
-    # global totalProductKeywordListDict
-    totalProductKeywordListDict = {}
+def readCsv(filename, useKeywordCash = False):
+    if not useKeywordCash:
+        # global totalProductKeywordListDict
+        totalProductKeywordListDict = {}
 
-    f = open(filename, 'r')
-    rdr = csv.reader(f)
-    for line in rdr:
-        product_name = line[0]
-        totalProductKeywordListDict[product_name] = []
-        keywordSet = set()
-        rel_keywords = line[1]
-        rel_keyword_list = rel_keywords.split(',')
+        f = open(filename, 'r')
+        rdr = csv.reader(f)
+        for line in rdr:
+            product_name = line[0]
+            totalProductKeywordListDict[product_name] = []
+            keywordSet = set()
+            rel_keywords = line[1]
+            rel_keyword_list = rel_keywords.split(',')
 
-        print('Product : ', product_name)
+            print('Product : ', product_name)
 
-        keywords_cnt = len(rel_keyword_list)
-        keyword_grp = keywords_cnt // 5 + 1
+            keywords_cnt = len(rel_keyword_list)
+            keyword_grp = keywords_cnt // 5 + 1
 
-        ff = open('{}.csv'.format(product_name),'w',encoding= 'utf-8-sig', newline='')
-        wr = csv.writer(ff)
-        wr.writerow(['상품명','카테고리','검색수','상품수','경쟁률'])
-        ff.close()
+            ff = open('{}.csv'.format(product_name),'w',encoding= 'utf-8-sig', newline='')
+            wr = csv.writer(ff)
+            wr.writerow(['상품명','카테고리','검색수','상품수','경쟁률'])
+            ff.close()
 
-        for group_num in range(keyword_grp):
-            time.sleep(1)
-            if group_num*5 + 5 < keywords_cnt:
-                keyword_list_part = rel_keyword_list[group_num*5:group_num*5+5]
-            else:
-                keyword_list_part = rel_keyword_list[group_num*5:keywords_cnt]
-            keyword_str = ','.join(keyword_list_part)
-            keywordList = sendRequestToNaverKeywordTool(product_name, keyword_str)
+            for group_num in range(keyword_grp):
+                time.sleep(1)
+                if group_num*5 + 5 < keywords_cnt:
+                    keyword_list_part = rel_keyword_list[group_num*5:group_num*5+5]
+                else:
+                    keyword_list_part = rel_keyword_list[group_num*5:keywords_cnt]
+                keyword_str = ','.join(keyword_list_part)
+                keywordList = sendRequestToNaverKeywordTool(product_name, keyword_str)
 
-            if keywordList:
-                for item in keywordList:
-                    if item['keyword'] in keywordSet:
-                        continue
-                    else:
-                        keywordSet.add(item['keyword'])
-                        totalProductKeywordListDict[product_name].append(item)
-            
-            print("---{}% done---".format((group_num + 1) * 100 // keyword_grp ))
-    f.close()
+                if keywordList:
+                    for item in keywordList:
+                        if item['keyword'] in keywordSet:
+                            continue
+                        else:
+                            keywordSet.add(item['keyword'])
+                            totalProductKeywordListDict[product_name].append(item)
+                
+                print("---{}% done---".format((group_num + 1) * 100 // keyword_grp ))
+        f.close()
 
-    for productName, parsedKeywordList in totalProductKeywordListDict.items():
-        ff = open('keywordCash.csv','w',encoding= 'utf-8-sig', newline='')
-        wr = csv.writer(ff)
-        wr.writerow([productName, parsedKeywordList])
-        ff.close()    
+        for productName, parsedKeywordList in totalProductKeywordListDict.items():
+            ff = open('keywordCash.csv','w',encoding= 'utf-8-sig', newline='')
+            wr = csv.writer(ff)
+            wr.writerow([productName, parsedKeywordList])
+            ff.close()    
 
     # keywordCash를 순회하면서 filter 작업 수행하기!
     print('### Filter Keyword ###')
@@ -88,18 +89,17 @@ def filterKeywords(productName, keywordList):
         curIndex = curIndex + 1
         keyword, searchCount = keywordObj['keyword'], keywordObj['searchCount']
         
-        if searchCount >= 1000:
-            shoppingData = sendRequestToNaverShopping(keyword)
-            try:
-                finalKeywordObj = {
-                    'searchCount': searchCount,
-                    'itemCategory': shoppingData['itemCategory'],
-                    'totalItemCount': shoppingData['totalItemCount'],
-                    'ratio': float(shoppingData['totalItemCount']) / searchCount
-                }
-                wr.writerow([keyword,finalKeywordObj['itemCategory'],finalKeywordObj['searchCount'],finalKeywordObj['totalItemCount'],finalKeywordObj['ratio']])
-            except Exception as e:
-                print("Exception On filterKeywords:: ", str(e))
+        shoppingData = sendRequestToNaverShopping(keyword)
+        try:
+            finalKeywordObj = {
+                'searchCount': searchCount,
+                'itemCategory': shoppingData['itemCategory'],
+                'totalItemCount': shoppingData['totalItemCount'],
+                'ratio': float(shoppingData['totalItemCount']) / searchCount
+            }
+            wr.writerow([keyword,finalKeywordObj['itemCategory'],finalKeywordObj['searchCount'],finalKeywordObj['totalItemCount'],finalKeywordObj['ratio']])
+        except Exception as e:
+            print("Exception On filterKeywords:: ", str(e))
         
         curProgress = (curIndex * 100) // totalSize
         
@@ -192,6 +192,6 @@ def sendRequestToNaverShopping(keyword):
 
 start_time = time.time()
 
-readCsv('상품조사.csv')
+readCsv('상품조사.csv', True)
 
 print("---Total time : {}---".format(time.time() - start_time))
