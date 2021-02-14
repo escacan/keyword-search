@@ -2,10 +2,12 @@ import requests
 import sys
 import csv
 import time
+import ast
 
-_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiJkZTVlODdjMi1mMzEzLTQ2YWQtYTdlZC03ZTE1Zjk3ZmRkM2YiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEzMzA4MTgyLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEzMzA4ODQyLCJpYXQiOjE2MTMzMDgyNDIsImp0aSI6IjRhMDE4OGQ3LWRjOWEtNGVmMC05ODkzLWMyNzUwYzE0OTJlMyJ9.0Z_Vg0S86UfxR-bM5JDfJLWGvLOAGhlDSJQMG9N90n0'
+_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiJkZTVlODdjMi1mMzEzLTQ2YWQtYTdlZC03ZTE1Zjk3ZmRkM2YiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEzMzExNzkwLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEzMzEyNDUwLCJpYXQiOjE2MTMzMTE4NTAsImp0aSI6IjJlYzY0NTg3LTI4MmMtNDBjOS04OWI0LTA0OWViMWIxZTc5YSJ9.rCU-xdwVwNnNNBnj4BQ_1LkPXLFYqd7RZhuRpd1PXPA'
 _clientId = 'k5ZoItU4ij5tAH1wX-seU'
 _keywordSet = set()
+_cashFile = 'keywordCash.csv'
 
 def getClientId():
     clientId = input("ClientId 입력 : ")
@@ -59,20 +61,20 @@ def readCsv(filename, useKeywordCash = False):
                 print("---{}% done---".format((group_num + 1) * 100 // keyword_grp ))
         f.close()
 
+        ff = open(_cashFile,'w',encoding= 'utf-8-sig', newline='')
+        wr = csv.writer(ff)
         for productName, parsedKeywordList in totalProductKeywordListDict.items():
-            ff = open('keywordCash.csv','w',encoding= 'utf-8-sig', newline='')
-            wr = csv.writer(ff)
             wr.writerow([productName, parsedKeywordList])
-            ff.close()    
+        ff.close()    
 
     # keywordCash를 순회하면서 filter 작업 수행하기!
     print('### Filter Keyword ###')
-    f = open(filename, 'r')
+    f = open(_cashFile, 'r')
     rdr = csv.reader(f)
     for line in rdr:
         productName = line[0]
-        keywordList = line[1]
-        filterKeywords(productName, parsedKeywordList)
+        keywordList = ast.literal_eval(line[1])
+        filterKeywords(productName, keywordList)
     f.close()
 
 def filterKeywords(productName, keywordList):
@@ -85,7 +87,6 @@ def filterKeywords(productName, keywordList):
     prevC = 10
 
     for keywordObj in keywordList:
-        time.sleep(0.5)
         curIndex = curIndex + 1
         keyword, searchCount = keywordObj['keyword'], keywordObj['searchCount']
         
@@ -100,6 +101,7 @@ def filterKeywords(productName, keywordList):
             wr.writerow([keyword,finalKeywordObj['itemCategory'],finalKeywordObj['searchCount'],finalKeywordObj['totalItemCount'],finalKeywordObj['ratio']])
         except Exception as e:
             print("Exception On filterKeywords:: ", str(e))
+            print(shoppingData)
         
         curProgress = (curIndex * 100) // totalSize
         
@@ -150,6 +152,7 @@ def sendRequestToNaverKeywordTool(productName= '', keywords=''):
             return parsedKeywordList
     except Exception as e:
         print("Exception On sendRequestToNaverKeywordTool:: ", str(e))
+        print(resp.text)
         return []
 
 def sendRequestToNaverShopping(keyword):
@@ -167,7 +170,9 @@ def sendRequestToNaverShopping(keyword):
         products = resp.json().get('pageProps').get('initialState').get('products')
         # pageProps -> initialState -> products -> total
 
-        totalItemCount = products.get('total', 0)
+        totalItemCount = products.get('total')
+        if not totalItemCount:
+            totalItemCount = 0
     
         # pageProps -> initialState -> products -> list -> 0 -> item -> [category1Name, category1Name, category1Name, category1Name]
         if totalItemCount > 0:
@@ -187,11 +192,12 @@ def sendRequestToNaverShopping(keyword):
 
     except Exception as e:
         print("sendRequestToNaverShopping:: ", str(e))
+        print(resp.text)
     finally:
         return {'itemCategory': itemCategory, 'totalItemCount': totalItemCount}
 
 start_time = time.time()
 
-readCsv('상품조사.csv', True)
+readCsv('상품조사.csv', False)
 
 print("---Total time : {}---".format(time.time() - start_time))
