@@ -7,17 +7,21 @@ import time
 import ast
 
 _token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiJkZTVlODdjMi1mMzEzLTQ2YWQtYTdlZC03ZTE1Zjk3ZmRkM2YiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEzMzExNzkwLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEzMzEyNDUwLCJpYXQiOjE2MTMzMTE4NTAsImp0aSI6IjJlYzY0NTg3LTI4MmMtNDBjOS04OWI0LTA0OWViMWIxZTc5YSJ9.rCU-xdwVwNnNNBnj4BQ_1LkPXLFYqd7RZhuRpd1PXPA'
-_clientId = 'k5ZoItU4ij5tAH1wX-seU'
+_clientId = 'cccf64bfd950b4eca5b7'
 _keywordSet = set()
 _cashFile = 'keywordCash.csv'
 
 def getClientId():
     clientId = input("ClientId 입력 : ")
-    return clientId
+    return clientId.strip()
 
 def getBearerToken():
     global _token
     _token = input("베어러 토큰 입력 : ")
+    if "Bearer " in _token:
+        _token = _token.split("Bearer")[1]
+    _token.strip()
+    print(_token)
 
 def readCsv(filename, useKeywordCash = False):
     if not useKeywordCash:
@@ -27,21 +31,19 @@ def readCsv(filename, useKeywordCash = False):
         f = open(filename, 'r')
         rdr = csv.reader(f)
         for line in rdr:
-            product_name = line[0]
+            product_name = line[0].strip()
             totalProductKeywordListDict[product_name] = []
             keywordSet = set()
             rel_keywords = line[1]
-            rel_keyword_list = rel_keywords.split(',')
+            temp_list = rel_keywords.split(',')
+            rel_keyword_list = []
+            for keyword in temp_list:
+                rel_keyword_list.append(keyword.strip())
 
             print('Product : ', product_name)
 
             keywords_cnt = len(rel_keyword_list)
             keyword_grp = keywords_cnt // 5 + 1
-
-            ff = open('{}.csv'.format(product_name),'w',encoding= 'utf-8-sig', newline='')
-            wr = csv.writer(ff)
-            wr.writerow(['상품명','카테고리','검색수','상품수','경쟁률'])
-            ff.close()
 
             for group_num in range(keyword_grp):
                 time.sleep(1)
@@ -81,8 +83,9 @@ def readCsv(filename, useKeywordCash = False):
 
 def filterKeywords(productName, keywordList):
     print('Product : {}, KeywordSize : {}'.format(productName, len(keywordList)))
-    f = open('{}.csv'.format(productName),'a',encoding= 'utf-8-sig', newline='')
+    f = open('{}.csv'.format(productName),'w',encoding= 'utf-8-sig', newline='')
     wr = csv.writer(f)
+    wr.writerow(['상품명', '카테고리', '검색수', '상품수', '경쟁률'])
 
     totalSize = len(keywordList)
     curIndex = 0
