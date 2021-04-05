@@ -19,7 +19,7 @@ def getBearerToken():
     global _token
     _token = input("베어러 토큰 입력 : ")
     if "Bearer " in _token:
-        _token = _token.split("Bearer")[1]
+        _token = _token.split("Bearer ")[1]
     _token.strip()
     print(_token)
 
