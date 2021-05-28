@@ -6,8 +6,8 @@ import csv
 import time
 import ast
 
-_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiJkZTVlODdjMi1mMzEzLTQ2YWQtYTdlZC03ZTE1Zjk3ZmRkM2YiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjEzMzExNzkwLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjEzMzEyNDUwLCJpYXQiOjE2MTMzMTE4NTAsImp0aSI6IjJlYzY0NTg3LTI4MmMtNDBjOS04OWI0LTA0OWViMWIxZTc5YSJ9.rCU-xdwVwNnNNBnj4BQ_1LkPXLFYqd7RZhuRpd1PXPA'
-_clientId = 'IbRM_fvLdaenHdKCR6GLq'
+_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiIzMzNkYzliOC0wMjMzLTRmNDQtYTA2OS01MDgxZGFmZWMyNDQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjIyMjAwMTY5LCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjIyMjAwODI5LCJpYXQiOjE2MjIyMDAyMjksImp0aSI6IjNkZmMzMDA3LTgwNTktNDFjMS05MTdkLWMxMDc3ZGRiZmE1ZSJ9.2idIploM0jWhKz9l17Xzyw8wVZBHgQskiXodiZKA1OY'
+_clientId = 'Ek37sfG4sWQWGK-6dOoZv'
 _keywordSet = set()
 _cashFile = 'keywordCash.csv'
 
@@ -28,7 +28,7 @@ def readCsv(filename, useKeywordCash = False):
         # global totalProductKeywordListDict
         totalProductKeywordListDict = {}
 
-        f = open(filename, 'r')
+        f = open(filename, 'r', encoding='CP949')
         rdr = csv.reader(f)
         for line in rdr:
             product_name = line[0].strip()
@@ -65,7 +65,7 @@ def readCsv(filename, useKeywordCash = False):
                 print("---{}% done---".format((group_num + 1) * 100 // keyword_grp ))
         f.close()
 
-        ff = open(_cashFile,'w',encoding= 'utf-8-sig', newline='')
+        ff = open(_cashFile,'w',encoding= 'CP949', newline='')
         wr = csv.writer(ff)
         for productName, parsedKeywordList in totalProductKeywordListDict.items():
             wr.writerow([productName, parsedKeywordList])
