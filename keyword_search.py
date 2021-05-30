@@ -115,7 +115,7 @@ def filterKeywords(productName, keywordList):
             print("---{}% done---".format(prevC))
             prevC = prevC + 10
 
-        time.sleep(0.4)
+        time.sleep(1)
     f.close()
     print("---100% done---")
 
