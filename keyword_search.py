@@ -73,7 +73,7 @@ def readCsv(filename, useKeywordCash = False):
 
     # keywordCash를 순회하면서 filter 작업 수행하기!
     print('### Filter Keyword ###')
-    f = open(_cashFile, 'r')
+    f = open(_cashFile, 'r', encoding= 'utf-8-sig')
     rdr = csv.reader(f)
     for line in rdr:
         productName = line[0]
@@ -83,7 +83,7 @@ def readCsv(filename, useKeywordCash = False):
 
 def filterKeywords(productName, keywordList):
     print('Product : {}, KeywordSize : {}'.format(productName, len(keywordList)))
-    f = open('{}.csv'.format(productName),'w',encoding= 'utf-8-sig', newline='')
+    f = open('{}.csv'.format(productName),'w',encoding= 'CP949', newline='')
     wr = csv.writer(f)
     wr.writerow(['상품명', '카테고리', '검색수', '상품수', '경쟁률'])
 
@@ -95,13 +95,13 @@ def filterKeywords(productName, keywordList):
         curIndex = curIndex + 1
         keyword, searchCount = keywordObj['keyword'], keywordObj['searchCount']
         
-        shoppingData = sendRequestToNaverShopping(keyword)
+        # shoppingData = sendRequestToNaverShopping(keyword)
         try:
             finalKeywordObj = {
                 'searchCount': searchCount,
-                'itemCategory': shoppingData['itemCategory'],
-                'totalItemCount': shoppingData['totalItemCount'],
-                'ratio': float(shoppingData['totalItemCount']) / searchCount
+                'itemCategory': '',
+                'totalItemCount': '',
+                'ratio': ''
             }
             wr.writerow([keyword,finalKeywordObj['itemCategory'],finalKeywordObj['searchCount'],finalKeywordObj['totalItemCount'],finalKeywordObj['ratio']])
         except Exception as e:
@@ -203,6 +203,6 @@ def sendRequestToNaverShopping(keyword):
 
 start_time = time.time()
 
-readCsv('상품조사.csv', False)
+readCsv('상품조사.csv', True)
 
 print("---Total time : {}---".format(time.time() - start_time))
