@@ -5,9 +5,9 @@ import sys
 import csv
 import time
 import ast
+from bs4 import BeautifulSoup
 
 _token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiIzMzNkYzliOC0wMjMzLTRmNDQtYTA2OS01MDgxZGFmZWMyNDQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjIyMjAwMTY5LCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjIyMjAwODI5LCJpYXQiOjE2MjIyMDAyMjksImp0aSI6IjNkZmMzMDA3LTgwNTktNDFjMS05MTdkLWMxMDc3ZGRiZmE1ZSJ9.2idIploM0jWhKz9l17Xzyw8wVZBHgQskiXodiZKA1OY'
-_clientId = 'Ek37sfG4sWQWGK-6dOoZv'
 _keywordSet = set()
 _cashFile = 'keywordCash.csv'
 
@@ -94,14 +94,15 @@ def filterKeywords(productName, keywordList):
     for keywordObj in keywordList:
         curIndex = curIndex + 1
         keyword, searchCount = keywordObj['keyword'], keywordObj['searchCount']
-        
-        # shoppingData = sendRequestToNaverShopping(keyword)
+
+        shoppingData = sendRequestToNaverShopping(keyword)
+
         try:
             finalKeywordObj = {
                 'searchCount': searchCount,
-                'itemCategory': '',
-                'totalItemCount': '',
-                'ratio': ''
+                'itemCategory': shoppingData['itemCategory'],
+                'totalItemCount': shoppingData['totalItemCount'],
+                'ratio': float(shoppingData['totalItemCount']) / searchCount
             }
             wr.writerow([keyword,finalKeywordObj['itemCategory'],finalKeywordObj['searchCount'],finalKeywordObj['totalItemCount'],finalKeywordObj['ratio']])
         except Exception as e:
@@ -113,6 +114,8 @@ def filterKeywords(productName, keywordList):
         if curProgress >= prevC:
             print("---{}% done---".format(prevC))
             prevC = prevC + 10
+
+        time.sleep(0.4)
     f.close()
     print("---100% done---")
 
@@ -161,43 +164,21 @@ def sendRequestToNaverKeywordTool(productName= '', keywords=''):
         return []
 
 def sendRequestToNaverShopping(keyword):
-    url = 'https://search.shopping.naver.com/_next/data/{}/search/all.json'.format(_clientId)
-    params = {
-        'query': keyword
-    }
-    
+    url = 'https://search.shopping.naver.com/search/all?query={}&frm=NVSHATC'.format(keyword)
+
     itemCategory = ''
     totalItemCount = 0
 
     try:
-        resp = requests.get(url= url, params= params)
-
-        products = resp.json().get('pageProps').get('initialState').get('products')
-        # pageProps -> initialState -> products -> total
-
-        totalItemCount = products.get('total')
-        if not totalItemCount:
-            totalItemCount = 0
-    
-        # pageProps -> initialState -> products -> list -> 0 -> item -> [category1Name, category1Name, category1Name, category1Name]
-        if totalItemCount > 0:
-            productList = products.get('list')
-
-            categoryBase = productList[0].get('item')
-            if 'category1Name' in categoryBase:
-                itemCategory = itemCategory + categoryBase['category1Name'] 
-                if 'category2Name' in categoryBase:
-                    itemCategory = itemCategory + categoryBase['category2Name']
-                    if 'category3Name' in categoryBase:
-                        itemCategory = itemCategory + categoryBase['category3Name']
-                        if 'category4Name' in categoryBase:
-                            itemCategory = itemCategory + categoryBase['category4Name']
-                            if 'category5Name' in categoryBase:
-                                itemCategory = itemCategory + categoryBase['category5Name']
+        resp = requests.get(url= url)
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        totalItemCount = soup.select(".subFilter_num__2x0jq")[0].getText()
+        totalItemCount = int(totalItemCount.replace(",",""))
+        itemCategory = soup.select(".basicList_depth__2QIie")[0].getText()
 
     except Exception as e:
         print("sendRequestToNaverShopping:: ", str(e))
-        print(resp.text)
+        # print(resp.text)
     finally:
         return {'itemCategory': itemCategory, 'totalItemCount': totalItemCount}
 
