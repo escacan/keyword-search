@@ -28,7 +28,7 @@ def readCsv(filename, useKeywordCash = False):
         # global totalProductKeywordListDict
         totalProductKeywordListDict = {}
 
-        f = open(filename, 'r', encoding='CP949')
+        f = open(filename, 'r')
         rdr = csv.reader(f)
         for line in rdr:
             product_name = line[0].strip()
@@ -65,7 +65,7 @@ def readCsv(filename, useKeywordCash = False):
                 print("---{}% done---".format((group_num + 1) * 100 // keyword_grp ))
         f.close()
 
-        ff = open(_cashFile,'w',encoding= 'CP949', newline='')
+        ff = open(_cashFile,'w',encoding= 'utf-8-sig', newline='')
         wr = csv.writer(ff)
         for productName, parsedKeywordList in totalProductKeywordListDict.items():
             wr.writerow([productName, parsedKeywordList])
@@ -83,7 +83,7 @@ def readCsv(filename, useKeywordCash = False):
 
 def filterKeywords(productName, keywordList):
     print('Product : {}, KeywordSize : {}'.format(productName, len(keywordList)))
-    f = open('{}.csv'.format(productName),'w',encoding= 'CP949', newline='')
+    f = open('./item/{}.csv'.format(productName),'w',encoding= 'utf-8-sig', newline='')
     wr = csv.writer(f)
     wr.writerow(['상품명', '카테고리', '검색수', '상품수', '경쟁률'])
 
@@ -184,6 +184,6 @@ def sendRequestToNaverShopping(keyword):
 
 start_time = time.time()
 
-readCsv('상품조사.csv', True)
+readCsv('상품조사.csv', False)
 
 print("---Total time : {}---".format(time.time() - start_time))
