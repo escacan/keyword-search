@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import requests
 import sys
+import ast
 import csv
 import time
-import ast
+
+import requests
 from bs4 import BeautifulSoup
 
-_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiIzMzNkYzliOC0wMjMzLTRmNDQtYTA2OS01MDgxZGFmZWMyNDQiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjIyMjAwMTY5LCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjIyMjAwODI5LCJpYXQiOjE2MjIyMDAyMjksImp0aSI6IjNkZmMzMDA3LTgwNTktNDFjMS05MTdkLWMxMDc3ZGRiZmE1ZSJ9.2idIploM0jWhKz9l17Xzyw8wVZBHgQskiXodiZKA1OY'
+_token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJsb2dpbklkIjoiaG9uZ19vd25lcjpuYXZlciIsInJvbGUiOjAsImNsaWVudElkIjoibmF2ZXItY29va2llIiwiaXNBcGkiOmZhbHNlLCJ1c2VySWQiOjIzNTU4NjIsInVzZXJLZXkiOiJjMWVmMTQ2MC1jMGI2LTQ1ZmMtYmFiZi05Y2MxOGJjM2M1MmUiLCJjbGllbnRDdXN0b21lcklkIjoyMTA1NTE0LCJpc3N1ZVR5cGUiOiJ1c2VyIiwibmJmIjoxNjM4MDcxNTQzLCJpZHAiOiJ1c2VyLWV4dC1hdXRoIiwiY3VzdG9tZXJJZCI6MjEwNTUxNCwiZXhwIjoxNjM4MDcyMjAzLCJpYXQiOjE2MzgwNzE2MDMsImp0aSI6IjI3MzY2ZTNlLTYyMzAtNGQ3Mi04ZWJhLTlhZjU1NzgxZjFjOCJ9.QqzdZcHweuB6d4tK0tXrmoe8UQoEUmpVFUvpLoBVtZI'
 _keywordSet = set()
 _cashFile = 'keywordCash.csv'
 
@@ -28,6 +29,7 @@ def readCsv(filename, useKeywordCash = False):
         # global totalProductKeywordListDict
         totalProductKeywordListDict = {}
 
+        # f = open(filename, 'r', encoding= 'CP949')
         f = open(filename, 'r')
         rdr = csv.reader(f)
         for line in rdr:
@@ -35,14 +37,16 @@ def readCsv(filename, useKeywordCash = False):
             totalProductKeywordListDict[product_name] = []
             keywordSet = set()
             rel_keywords = line[1]
+            # print(rel_keywords)
             temp_list = rel_keywords.split(',')
             rel_keyword_list = []
             for keyword in temp_list:
                 rel_keyword_list.append(keyword.strip())
 
-            print('Product : ', product_name)
-
             keywords_cnt = len(rel_keyword_list)
+
+            # print('Product : ', product_name, ' , keyword: ', keywords_cnt)
+
             keyword_grp = keywords_cnt // 5 + 1
 
             for group_num in range(keyword_grp):
@@ -73,6 +77,9 @@ def readCsv(filename, useKeywordCash = False):
 
     # keywordCash를 순회하면서 filter 작업 수행하기!
     print('### Filter Keyword ###')
+
+    csv.field_size_limit(sys.maxsize)
+
     f = open(_cashFile, 'r', encoding= 'utf-8-sig')
     rdr = csv.reader(f)
     for line in rdr:
@@ -95,6 +102,9 @@ def filterKeywords(productName, keywordList):
         curIndex = curIndex + 1
         keyword, searchCount = keywordObj['keyword'], keywordObj['searchCount']
 
+        if searchCount == 0:
+            continue
+
         shoppingData = sendRequestToNaverShopping(keyword)
 
         try:
@@ -104,10 +114,12 @@ def filterKeywords(productName, keywordList):
                 'totalItemCount': shoppingData['totalItemCount'],
                 'ratio': float(shoppingData['totalItemCount']) / searchCount
             }
+            # print(keyword)
+            # print(finalKeywordObj)
             wr.writerow([keyword,finalKeywordObj['itemCategory'],finalKeywordObj['searchCount'],finalKeywordObj['totalItemCount'],finalKeywordObj['ratio']])
         except Exception as e:
             print("Exception On filterKeywords:: ", str(e))
-            print(shoppingData)
+            # print(shoppingData)
         
         curProgress = (curIndex * 100) // totalSize
         
@@ -115,7 +127,7 @@ def filterKeywords(productName, keywordList):
             print("---{}% done---".format(prevC))
             prevC = prevC + 10
 
-        time.sleep(1)
+        time.sleep(2)
     f.close()
     print("---100% done---")
 
@@ -155,8 +167,7 @@ def sendRequestToNaverKeywordTool(productName= '', keywords=''):
                     keyword['monthlyMobileQcCnt'] = 0
                 totalSearchCount = keyword['monthlyPcQcCnt'] + keyword['monthlyMobileQcCnt']
 
-                if totalSearchCount > 1000:
-                    parsedKeywordList.append({'keyword': keyword['relKeyword'], 'searchCount': totalSearchCount})
+                parsedKeywordList.append({'keyword': keyword['relKeyword'], 'searchCount': totalSearchCount})
             return parsedKeywordList
     except Exception as e:
         print("Exception On sendRequestToNaverKeywordTool:: ", str(e))
@@ -184,6 +195,6 @@ def sendRequestToNaverShopping(keyword):
 
 start_time = time.time()
 
-readCsv('상품조사.csv', False)
+readCsv('상품조사.csv', True)
 
 print("---Total time : {}---".format(time.time() - start_time))
